@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+venv/
+.env
+.venv/
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Build outputs
+backend/data/vectorstore/*
+!backend/data/vectorstore/.gitkeep
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env
+
+# RAG generated data
+backend/data/documents/*
+backend/data/vectorstore/*
+backend/data/chat_history.db
+
+# Test databases
+backend/tests/*.db
+
+# Logs
+*.log
