@@ -1,4 +1,4 @@
-# RAG Document Chatbot
+# RAG-Based College Document Assistant
 
 This repository contains a production-style document chatbot built with a Python backend and a React frontend. The system is designed around a Retrieval-Augmented Generation (RAG) architecture where user questions are answered using relevant document chunks retrieved from a vector database before generating a response with an LLM.
 
