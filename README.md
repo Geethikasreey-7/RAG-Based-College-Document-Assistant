@@ -42,7 +42,7 @@ rag-document-chatbot/
 
 ## Notes
 
-- This project is intentionally scaffolded without the actual RAG pipeline implementation.
+- The project features a fully implemented RAG pipeline including document processing, OpenAI embeddings, FAISS vector store indexing, similarity retrieval, and LLM-powered answer generation.
 - API keys and secrets are not hardcoded; they are configured through environment variables.
 - The backend and frontend are separated to support easier scaling and clearer responsibilities.
 
@@ -146,6 +146,7 @@ The chatbot now stores conversations in SQLite so users can continue previous th
 - `GET /api/conversations` - List conversations
 - `GET /api/conversations/{conversation_id}` - Fetch full conversation details
 - `POST /api/conversations/{conversation_id}/messages` - Save a user or assistant message
+- `DELETE /api/conversations/{conversation_id}` - Delete a conversation and its messages
 
 ## What is Retrieval-Augmented Generation (RAG)?
 
@@ -177,10 +178,31 @@ This makes the chatbot:
 - Scales to thousands of documents without token limit issues
 - Semantic search finds the right information, even in very long documents
 
-## Next steps
+## Running the application
+ 
+### 1. Backend Setup
+```bash
+cd backend
+pip install -r requirements.txt
+# Copy environment template and set your OPENAI_API_KEY
+copy .env.example .env
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-1. Set up the Python virtual environment and install backend dependencies.
-2. Install the React frontend dependencies.
-3. Connect the frontend chat experience to the backend API.
-4. Add streaming responses for better UX.
-5. Implement conversation history and multi-turn chat.
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 3. Running Tests
+```bash
+# Backend tests
+cd backend
+pytest
+
+# Frontend tests
+cd frontend
+npm test
+```

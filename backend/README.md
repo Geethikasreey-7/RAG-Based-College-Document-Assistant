@@ -44,4 +44,4 @@ The document ingestion pipeline is handled by the backend service layer and expo
 7. Each chunk is enriched with metadata: `source_filename`, `page_number`, and `chunk_id`.
 8. The API responds with the processed filename, page count, chunk count, and status.
 
-This scaffold now includes the ingestion foundation needed for the next RAG stages.
+The backend provides the complete RAG pipeline including document processing, vector search with FAISS, multi-turn conversation storage, and LLM answer generation with source citations.

@@ -4,14 +4,14 @@ import logging
 
 from langchain_openai import OpenAIEmbeddings
 
-from app.config import OPENAI_API_KEY, OPENAI_MODEL
+from app.config import OPENAI_API_KEY, OPENAI_EMBEDDING_MODEL
 
 logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
     def __init__(self, model_name: str | None = None, api_key: str | None = None) -> None:
-        self.model_name = model_name or OPENAI_MODEL
+        self.model_name = model_name or OPENAI_EMBEDDING_MODEL
         self.api_key = api_key or OPENAI_API_KEY
 
         if not self.api_key:

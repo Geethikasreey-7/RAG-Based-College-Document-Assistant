@@ -23,6 +23,8 @@ PORT = int(os.getenv("PORT", "8000"))
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "1536"))
 VECTORSTORE_TYPE = os.getenv("VECTORSTORE_TYPE", "faiss")
 VECTORSTORE_PATH = os.getenv("VECTORSTORE_PATH", str(BASE_DIR / "data" / "vectorstore"))
 UPLOAD_DIRECTORY = os.getenv("UPLOAD_DIRECTORY", str(BASE_DIR / "data" / "documents"))

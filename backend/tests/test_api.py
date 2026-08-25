@@ -20,7 +20,14 @@ def test_health_check(client):
 
 
 def test_upload_pdf_success(client, monkeypatch):
-    monkeypatch.setattr("app.services.embedding_service.OpenAIEmbeddings", object)
+    class FakeEmbeddings:
+        def embed_documents(self, texts):
+            return [[0.1] * 1536 for _ in texts]
+
+        def embed_query(self, text):
+            return [0.1] * 1536
+
+    monkeypatch.setattr("app.services.embedding_service.OpenAIEmbeddings", lambda *args, **kwargs: FakeEmbeddings())
 
     def fake_process_pdf(self, file_path):
         return {
@@ -76,13 +83,14 @@ def test_text_extraction_and_chunking():
 def test_embedding_service_uses_fake_embeddings(monkeypatch):
     service = EmbeddingService(api_key="test-key")
 
-    def fake_embed_documents(texts):
-        return [[float(len(text)) for _ in range(3)] for text in texts]
+    class StubEmbeddings:
+        def embed_documents(self, texts):
+            return [[float(len(text)) for _ in range(3)] for text in texts]
 
-    def fake_embed_query(text):
-        return [1.0, 2.0, 3.0]
+        def embed_query(self, text):
+            return [1.0, 2.0, 3.0]
 
-    monkeypatch.setattr(service, "embeddings", type("StubEmbeddings", (), {"embed_documents": fake_embed_documents, "embed_query": fake_embed_query})())
+    monkeypatch.setattr(service, "embeddings", StubEmbeddings())
 
     assert service.embed_documents(["one", "two"]) == [[float(len("one")) for _ in range(3)], [float(len("two")) for _ in range(3)]]
     assert service.embed_query("hello") == [1.0, 2.0, 3.0]

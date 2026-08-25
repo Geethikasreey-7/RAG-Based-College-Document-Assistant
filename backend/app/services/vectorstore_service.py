@@ -7,18 +7,19 @@ from pathlib import Path
 import faiss
 import numpy as np
 
-from app.config import VECTORSTORE_PATH
+from app.config import EMBEDDING_DIMENSION, VECTORSTORE_PATH
 from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 
 
 class VectorStoreService:
-    def __init__(self, index_path: str | Path | None = None) -> None:
+    def __init__(self, index_path: str | Path | None = None, dimension: int = EMBEDDING_DIMENSION) -> None:
         self.index_path = Path(index_path) if index_path else Path(VECTORSTORE_PATH)
         self.index_path.mkdir(parents=True, exist_ok=True)
         self.metadata_path = self.index_path / "metadata.json"
         self.index_file = self.index_path / "faiss_index.index"
+        self.dimension = dimension
         self.embeddings = EmbeddingService()
         self.index: faiss.Index | None = None
         self.metadata: list[dict] = []
@@ -28,17 +29,20 @@ class VectorStoreService:
         if self.index_file.exists() and self.metadata_path.exists():
             logger.info("Loading existing FAISS index from %s", self.index_path)
             self.index = faiss.read_index(str(self.index_file))
+            self.dimension = self.index.d
             with self.metadata_path.open("r", encoding="utf-8") as handle:
                 self.metadata = json.load(handle)
             return
 
-        logger.info("Creating a new FAISS index at %s", self.index_path)
-        self.index = faiss.IndexFlatL2(1536)
+        logger.info("Creating a new FAISS index at %s with dimension %s", self.index_path, self.dimension)
+        self.index = faiss.IndexFlatL2(self.dimension)
         self.metadata = []
         self.save_index()
 
-    def create_index(self) -> None:
-        self.index = faiss.IndexFlatL2(1536)
+    def create_index(self, dimension: int | None = None) -> None:
+        if dimension is not None:
+            self.dimension = dimension
+        self.index = faiss.IndexFlatL2(self.dimension)
         self.metadata = []
         self.save_index()
 
@@ -67,6 +71,10 @@ class VectorStoreService:
             return []
 
         vector_array = np.asarray(vectors, dtype="float32")
+        if self.index is None or (self.index.ntotal == 0 and self.index.d != vector_array.shape[1]):
+            self.dimension = vector_array.shape[1]
+            self.index = faiss.IndexFlatL2(self.dimension)
+
         self.index.add(vector_array)
 
         for chunk in new_chunks:
@@ -121,14 +129,16 @@ class VectorStoreService:
         self.metadata = remaining
 
         if not self.metadata:
-            self.index = faiss.IndexFlatL2(1536)
+            self.index = faiss.IndexFlatL2(self.dimension)
             self.save_index()
             logger.info("Removed the final document and reset the FAISS index.")
             return True
 
         texts = [item["text"] for item in self.metadata]
         vectors = self.embeddings.embed_documents(texts)
-        new_index = faiss.IndexFlatL2(1536)
+        if vectors:
+            self.dimension = len(vectors[0])
+        new_index = faiss.IndexFlatL2(self.dimension)
         if vectors:
             new_index.add(np.asarray(vectors, dtype="float32"))
         self.index = new_index

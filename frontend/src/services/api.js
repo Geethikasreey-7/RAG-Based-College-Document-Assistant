@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -54,6 +54,11 @@ export const conversationAPI = {
       role,
       content,
     });
+    return response.data;
+  },
+
+  delete: async (conversationId) => {
+    const response = await apiClient.delete(`/api/conversations/${conversationId}`);
     return response.data;
   },
 };

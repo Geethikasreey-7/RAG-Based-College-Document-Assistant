@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.config import CHAT_HISTORY_LIMIT
 from app.services.conversation_service import get_recent_messages
@@ -16,6 +16,13 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, description="User question to answer using document context")
     conversation_id: str | None = Field(default=None, description="Optional conversation identifier to include recent chat history")
+
+    @field_validator("question")
+    @classmethod
+    def validate_question(cls, value: str) -> str:
+        if not value or not value.strip():
+            raise ValueError("Question cannot be empty or whitespace only.")
+        return value.strip()
 
 
 class SourceInfo(BaseModel):

@@ -88,8 +88,10 @@ body {
   border-radius: 10px;
   padding: 0.75rem 0.9rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -98,6 +100,14 @@ body {
 .conversation-item.active {
   border-color: #667eea;
   background: #eef2ff;
+}
+
+.conversation-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .conversation-title {
@@ -109,6 +119,23 @@ body {
 .conversation-meta {
   color: #6b7280;
   font-size: 0.8rem;
+}
+
+.conversation-delete-button {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.conversation-delete-button:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .new-conversation-button {

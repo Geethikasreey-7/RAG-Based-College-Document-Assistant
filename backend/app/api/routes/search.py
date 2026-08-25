@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.config import RELEVANCE_THRESHOLD, TOP_K
 from app.services.retrieval_service import RetrievalService
@@ -14,6 +14,13 @@ router = APIRouter(prefix="/api/search", tags=["search"])
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Natural language query to search documents")
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, value: str) -> str:
+        if not value or not value.strip():
+            raise ValueError("Query cannot be empty or whitespace only.")
+        return value.strip()
 
 
 class SearchResult(BaseModel):

@@ -3,7 +3,14 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 
 from app.models.conversation import ConversationCreate, ConversationDetailResponse, ConversationResponse, MessageCreate, MessageResponse
-from app.services.conversation_service import add_message, conversation_exists, create_conversation, get_conversation, list_conversations
+from app.services.conversation_service import (
+    add_message,
+    conversation_exists,
+    create_conversation,
+    delete_conversation,
+    get_conversation,
+    list_conversations,
+)
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -75,3 +82,12 @@ async def create_message(conversation_id: str, payload: MessageCreate) -> Messag
         content=message["content"],
         created_at=message["created_at"],
     )
+
+
+@router.delete("/{conversation_id}")
+async def delete_single_conversation(conversation_id: str) -> dict:
+    if not conversation_exists(conversation_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
+
+    deleted = delete_conversation(conversation_id)
+    return {"conversation_id": conversation_id, "deleted": deleted}

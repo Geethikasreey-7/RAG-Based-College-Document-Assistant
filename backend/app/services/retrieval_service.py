@@ -68,7 +68,7 @@ class RetrievalService:
         seen_chunk_ids: set[str] = set()
         score_log: list[float] = []
 
-        for idx in indices[0]:
+        for rank, idx in enumerate(indices[0]):
             if idx < 0 or idx >= len(self.vector_store.metadata):
                 continue
 
@@ -78,7 +78,7 @@ class RetrievalService:
                 continue
             seen_chunk_ids.add(chunk_id)
 
-            distance = float(distances[0][list(indices[0]).tolist().index(idx)]) if idx in indices[0].tolist() else float("inf")
+            distance = float(distances[0][rank])
             relevance_score = self._distance_to_relevance(distance)
             score_log.append(relevance_score)
 

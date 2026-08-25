@@ -98,6 +98,29 @@ function App() {
     }
   };
 
+  const handleDeleteConversation = async (e, conversationId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this conversation?")) return;
+
+    try {
+      await conversationAPI.delete(conversationId);
+      const remaining = conversations.filter((c) => c.conversation_id !== conversationId);
+      setConversations(remaining);
+
+      if (activeConversationId === conversationId) {
+        if (remaining.length > 0) {
+          handleSelectConversation(remaining[0].conversation_id);
+        } else {
+          setActiveConversationId(null);
+          setMessages([]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete conversation:", error);
+      setChatError("Unable to delete this conversation.");
+    }
+  };
+
   const handleSendMessage = async (question) => {
     if (!documents || documents.length === 0) {
       setChatError("Please upload documents first before asking questions.");
@@ -179,18 +202,29 @@ function App() {
                   </div>
                 ) : (
                   conversations.map((conversation) => (
-                    <button
+                    <div
                       key={conversation.conversation_id}
                       className={`conversation-item ${
                         activeConversationId === conversation.conversation_id ? "active" : ""
                       }`}
                       onClick={() => handleSelectConversation(conversation.conversation_id)}
+                      role="button"
+                      tabIndex={0}
                     >
-                      <span className="conversation-title">{conversation.title}</span>
-                      <span className="conversation-meta">
-                        {new Date(conversation.updated_at).toLocaleDateString()}
-                      </span>
-                    </button>
+                      <div className="conversation-item-content">
+                        <span className="conversation-title">{conversation.title}</span>
+                        <span className="conversation-meta">
+                          {new Date(conversation.updated_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <button
+                        className="conversation-delete-button"
+                        onClick={(e) => handleDeleteConversation(e, conversation.conversation_id)}
+                        title="Delete conversation"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   ))
                 )}
               </div>

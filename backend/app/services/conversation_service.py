@@ -163,3 +163,12 @@ def conversation_exists(conversation_id: str) -> bool:
             (conversation_id,),
         ).fetchone()
     return row is not None
+
+
+def delete_conversation(conversation_id: str) -> bool:
+    with _connect() as connection:
+        cursor = connection.execute(
+            "DELETE FROM conversations WHERE conversation_id = ?",
+            (conversation_id,),
+        )
+        return cursor.rowcount > 0
