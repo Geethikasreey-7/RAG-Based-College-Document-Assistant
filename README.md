@@ -1,17 +1,253 @@
 # RAG-Based College Document Assistant
 
-This repository contains a production-style document chatbot built with a Python backend and a React frontend. The system is designed around a Retrieval-Augmented Generation (RAG) architecture where user questions are answered using relevant document chunks retrieved from a vector database before generating a response with an LLM.
+**An AI-powered college document assistant that uses Retrieval-Augmented Generation (RAG) to answer questions from uploaded PDF documents with source attribution.**
 
-## Architecture
+The system combines a **FastAPI backend**, **React frontend**, **OpenAI embeddings/LLM**, and **FAISS vector search** to provide grounded question answering over college documents.
 
-- Backend: FastAPI + Python + LangChain + OpenAI + FAISS/ChromaDB
-- Frontend: React + Vite + Axios
-- Storage: Local document uploads and vector store persistence
+Users can upload documents, search them using natural language, ask contextual questions, and continue conversations across multiple sessions.
 
-## Project structure
+---
+
+## 🎯 What Problem Does It Solve?
+
+College information is often distributed across PDFs such as:
+
+* Academic regulations
+* Course handbooks
+* Examination guidelines
+* Department documents
+* Student policies
+* Timetables
+* Administrative notices
+* Placement information
+
+Finding a specific piece of information manually can be slow and frustrating.
+
+This application provides a conversational interface where students can ask questions such as:
+
+> "What is the minimum attendance requirement?"
+
+> "When can I apply for supplementary examinations?"
+
+> "What are the requirements mentioned in the internship policy?"
+
+Instead of relying only on an LLM's general knowledge, the system retrieves relevant content from the uploaded documents and uses that context to generate an answer.
+
+---
+
+## 🏗️ Architecture
+
+```text
+                         ┌──────────────────────┐
+                         │    React Frontend    │
+                         │      Vite + Axios    │
+                         └──────────┬───────────┘
+                                    │
+                              HTTP / REST
+                                    │
+                         ┌──────────▼───────────┐
+                         │     FastAPI Backend   │
+                         │                       │
+                         │  API Routes / Services│
+                         └──────────┬───────────┘
+                                    │
+                  ┌─────────────────┼─────────────────┐
+                  │                 │                 │
+                  ▼                 ▼                 ▼
+          ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+          │ PDF Pipeline │  │ Conversation │  │  RAG Engine  │
+          │              │  │   Storage    │  │              │
+          │ PyPDF        │  │   SQLite     │  │ Retrieval    │
+          │ Cleaning     │  │   History    │  │ Prompting    │
+          │ Chunking     │  │              │  │ Generation   │
+          └──────┬───────┘  └──────────────┘  └──────┬───────┘
+                 │                                    │
+                 ▼                                    ▼
+          ┌──────────────┐                    ┌──────────────┐
+          │   OpenAI     │                    │ FAISS Vector │
+          │  Embeddings  │◄──────────────────►│    Store     │
+          └──────────────┘                    └──────────────┘
+                                                     │
+                                                     ▼
+                                              Relevant Chunks
+                                                     │
+                                                     ▼
+                                              ┌──────────────┐
+                                              │ OpenAI LLM   │
+                                              └──────┬───────┘
+                                                     │
+                                                     ▼
+                                             Answer + Sources
+```
+
+---
+
+## ✨ Key Features
+
+### 1. PDF Document Ingestion
+
+Users can upload PDF documents through the web interface.
+
+The ingestion pipeline performs:
+
+```text
+PDF Upload
+    ↓
+Text Extraction
+    ↓
+Text Cleaning
+    ↓
+Document Chunking
+    ↓
+OpenAI Embeddings
+    ↓
+FAISS Indexing
+    ↓
+Persistent Vector Store
+```
+
+The pipeline handles:
+
+* PDF validation
+* Page-level text extraction
+* Empty-page handling
+* Text normalization
+* Configurable chunk size
+* Configurable chunk overlap
+* Embedding generation
+* Vector-store persistence
+* Document metadata
+
+---
+
+### 2. Semantic Search
+
+The application uses **vector embeddings** and **FAISS similarity search** instead of relying solely on keyword matching.
+
+A user query is converted into an embedding and compared against indexed document chunks.
+
+```text
+User Query
+    ↓
+Query Embedding
+    ↓
+FAISS Similarity Search
+    ↓
+Top-K Relevant Chunks
+    ↓
+Relevance Filtering
+```
+
+This allows the system to retrieve relevant information even when the wording of the question differs from the wording in the original document.
+
+For example:
+
+```text
+Question:
+"How much attendance do students need?"
+
+Possible document text:
+"Students must maintain a minimum attendance percentage..."
+```
+
+A semantic search system can recognize the relationship between the two even without an exact keyword match.
+
+---
+
+## 🤖 Retrieval-Augmented Generation Pipeline
+
+The core chatbot workflow is:
+
+```text
+User Question
+      ↓
+Recent Conversation History
+      ↓
+Query Embedding
+      ↓
+FAISS Semantic Search
+      ↓
+Top-K Relevant Chunks
+      ↓
+Filtering / Deduplication
+      ↓
+Context Construction
+      ↓
+Grounded LLM Prompt
+      ↓
+LLM Generation
+      ↓
+Answer + Source References
+```
+
+### Step-by-step
+
+1. The user submits a natural-language question.
+2. Recent conversation history is optionally included for follow-up questions.
+3. The question is converted into an embedding using the same embedding model used during ingestion.
+4. FAISS searches for semantically similar document chunks.
+5. The top-K relevant chunks are retrieved.
+6. Duplicate or low-quality chunks are removed.
+7. Retrieved content is converted into a bounded context.
+8. Document context and conversation history are kept logically separated.
+9. The LLM generates an answer using the retrieved document context.
+10. The response includes source metadata such as filename and page number.
+
+---
+
+## 📚 Grounded Answers & Source Attribution
+
+One of the key design goals is **traceability**.
+
+Instead of returning only:
+
+```text
+"The attendance requirement is 75%."
+```
+
+the system can return the answer together with its source information:
+
+```text
+Answer:
+Students are required to maintain the specified minimum attendance.
+
+Sources:
+- academic_regulations.pdf — Page 12
+- student_handbook.pdf — Page 7
+```
+
+This makes the system easier to verify and reduces the risk of users accepting unsupported model-generated information.
+
+---
+
+## 🧠 Conversation Memory
+
+The application supports persistent conversations using **SQLite**.
+
+Users can:
+
+* Create conversations
+* View previous conversations
+* Open an existing conversation
+* Continue a previous discussion
+* Store user and assistant messages
+* Delete conversations
+
+The system does **not** send unlimited conversation history to the LLM.
+
+Instead, only a bounded recent portion of the conversation is included, allowing follow-up questions such as:
+
+> "What about the second requirement?"
+
+to remain contextual without continuously increasing prompt size.
+
+---
+
+## 🗂️ Project Structure
 
 ```text
 rag-document-chatbot/
+│
 ├── backend/
 │   ├── app/
 │   │   ├── main.py
@@ -21,10 +257,12 @@ rag-document-chatbot/
 │   │   ├── services/
 │   │   ├── models/
 │   │   └── utils/
+│   │
 │   ├── data/
 │   │   ├── documents/
 │   │   ├── vectorstore/
 │   │   └── chat_history.db
+│   │
 │   ├── requirements.txt
 │   └── README.md
 │
@@ -40,169 +278,353 @@ rag-document-chatbot/
 └── README.md
 ```
 
-## Notes
+---
 
-- The project features a fully implemented RAG pipeline including document processing, OpenAI embeddings, FAISS vector store indexing, similarity retrieval, and LLM-powered answer generation.
-- API keys and secrets are not hardcoded; they are configured through environment variables.
-- The backend and frontend are separated to support easier scaling and clearer responsibilities.
+## 🛠️ Technology Stack
 
-## Document ingestion flow
+### Backend
 
-The backend implements a modular document ingestion pipeline for PDF files.
+* **Python**
+* **FastAPI**
+* **LangChain**
+* **OpenAI API**
+* **PyPDF**
+* **FAISS**
+* **SQLite**
 
-PDF
-↓
-Text extraction
-↓
-Chunking
-↓
-Embedding model
-↓
-Vector embeddings
-↓
-FAISS vector database
+### Frontend
 
-1. PDF upload: a file is accepted through `POST /api/documents/upload` using multipart form data.
-2. Text extraction: PyPDF reads each page and extracts raw text while handling empty pages and invalid files.
-3. Cleaning: whitespace and formatting noise are normalized into consistent text blocks.
-4. Chunking: text is split into overlapping chunks using configurable chunk size and overlap settings.
-5. Embedding model: each cleaned chunk is converted into a vector using the OpenAI embedding model.
-6. Vector embeddings: these numeric vectors capture semantic meaning and allow similarity matching between user questions and stored content.
-7. FAISS vector database: the vectors and associated metadata are persisted in `backend/data/vectorstore/` for fast retrieval.
+* **React**
+* **Vite**
+* **Axios**
 
-## Why vector embeddings are required in a RAG system
+### AI / RAG
 
-Vector embeddings are required because a large language model does not natively understand document similarity in the way a search system does. Embeddings convert text into high-dimensional numerical representations so the system can compare semantic similarity between a user question and stored document chunks. In a RAG pipeline, the chatbot retrieves the most relevant chunks by embedding both the query and the indexed content, then passes those chunks to the LLM to generate a grounded answer.
+* OpenAI embeddings
+* Vector similarity search
+* Top-K retrieval
+* Context construction
+* LLM-based answer generation
+* Source attribution
+* Conversation-aware retrieval
 
-## Semantic search vs. keyword search
+---
 
-**Keyword search** looks for exact word matches or partial string overlap. If you search for "how to make coffee", it returns documents containing those exact words, but may miss documents about "brewing espresso" or "preparing a caffeine beverage."
+## 🔐 Configuration & Security
 
-**Semantic search** understands the meaning behind words. It embeds both your query and document chunks into vector space, then finds the closest vectors. A query for "how to make coffee" will retrieve chunks about brewing, preparation, espresso machines, and related concepts—even if those exact words don't appear.
+API keys and secrets are not hardcoded into the application.
 
-Why semantic search is useful for RAG:
-- **Intent matching**: understands what users really mean, not just keywords they typed
-- **Paraphrasing**: finds similar content even when worded differently
-- **Context awareness**: retrieves documents based on meaning rather than word overlap
-- **Better LLM input**: the LLM receives contextually relevant chunks, leading to more accurate answers
+Configuration is supplied through environment variables.
 
-Without semantic search, a keyword-based RAG system would miss relevant information and produce lower-quality answers.
+Example:
 
-## RAG generation pipeline
+```env
+OPENAI_API_KEY=your-api-key
+```
 
-The RAG (Retrieval-Augmented Generation) pipeline combines retrieval and generation for accurate, grounded answers.
+The repository should keep `.env` files and other secrets outside version control.
 
-User Question
-↓
-Conversation History (recent messages only)
-↓
+---
+
+## 🌐 API Endpoints
+
+### Health
+
+```text
+GET /health
+```
+
+Checks whether the backend is running.
+
+### Documents
+
+```text
+GET    /api/documents
+POST   /api/documents/upload
+DELETE /api/documents/{filename}
+```
+
+Used to list, upload, process, and remove documents.
+
+### Search
+
+```text
+POST /api/search
+```
+
+Performs semantic search against the indexed document collection.
+
+### Chat
+
+```text
+POST /api/chat
+```
+
+Performs RAG-based question answering with optional conversation context and source attribution.
+
+### Conversations
+
+```text
+POST   /api/conversations
+GET    /api/conversations
+GET    /api/conversations/{conversation_id}
+POST   /api/conversations/{conversation_id}/messages
+DELETE /api/conversations/{conversation_id}
+```
+
+Used to manage persistent conversation threads and messages.
+
+---
+
+## 🔄 Document Ingestion Example
+
+Suppose a college uploads:
+
+```text
+academic_regulations.pdf
+```
+
+The system processes it as follows:
+
+```text
+academic_regulations.pdf
+          ↓
+Extract page text
+          ↓
+Clean text
+          ↓
+Split into overlapping chunks
+          ↓
+Generate embeddings
+          ↓
+Store vectors in FAISS
+          ↓
+Store document/page metadata
+```
+
+A later question such as:
+
+> "How many attempts are allowed for a failed course?"
+
+is converted into an embedding and matched against the indexed chunks.
+
+The most relevant chunks are then provided to the LLM as context.
+
+---
+
+## 💬 Example Chat Flow
+
+```text
+Student:
+"What is the minimum attendance requirement?"
+
+        ↓
+
 Query Embedding
-↓
-FAISS Semantic Search
-↓
-Top-K Relevant Chunks
-↓
-Clean + Deduplicate Chunks
-↓
-Context Construction (document context separated from chat history)
-↓
-LLM Prompt with safe instructions
-↓
-LLM Response
-↓
-Answer + Sources
 
-1. User asks a natural language question through the chat endpoint.
-2. Recent conversation history can be included for follow-up references such as "the second point" or "what about it".
-3. The question is embedded using the same OpenAI embedding model as the documents.
-4. FAISS semantic search finds the most similar document chunks.
-5. The top-K chunks are retrieved and ranked by relevance score.
-6. Low-quality or duplicate chunks are filtered before they reach the LLM.
-7. A bounded context string is built from the relevant document chunks with source attribution.
-8. The prompt keeps document context and conversational history clearly separated to reduce hallucination.
-9. OpenAI's chat model generates an answer based only on the provided context.
-10. The response includes the answer text and a list of sources (filename, page number).
+        ↓
 
-## Conversation history architecture
+FAISS Search
 
-The chatbot now stores conversations in SQLite so users can continue previous threads without losing context.
+        ↓
 
-- Conversations are created through `POST /api/conversations`
-- Conversation metadata is read through `GET /api/conversations`
-- Full conversation details are available at `GET /api/conversations/{conversation_id}`
-- Messages are stored via `POST /api/conversations/{conversation_id}/messages`
-- The frontend displays a list of previous conversations and lets a user open or start a new one
-- Only a small recent slice of previous messages is included in the prompt, which keeps follow-up questions contextual without sending unlimited history to the model
+Relevant chunks:
+academic_regulations.pdf
+Page 12
 
-## API endpoints
+        ↓
 
-- `GET /health` - API health check
-- `GET /api/documents` - List uploaded documents
-- `POST /api/documents/upload` - Upload and process a PDF
-- `DELETE /api/documents/{filename}` - Remove a document
-- `POST /api/search` - Semantic search with natural language query
-- `POST /api/chat` - RAG-based question answering with sources and optional conversation context
-- `POST /api/conversations` - Create a new conversation
-- `GET /api/conversations` - List conversations
-- `GET /api/conversations/{conversation_id}` - Fetch full conversation details
-- `POST /api/conversations/{conversation_id}/messages` - Save a user or assistant message
-- `DELETE /api/conversations/{conversation_id}` - Delete a conversation and its messages
+Context Construction
 
-## What is Retrieval-Augmented Generation (RAG)?
+        ↓
 
-RAG is an approach that combines document retrieval with language model generation. Instead of relying on the model's training data alone, RAG:
-1. Retrieves relevant documents or chunks based on the user's question
-2. Constructs a context from those documents
-3. Passes the context to an LLM to generate an answer
+OpenAI LLM
 
-This makes the chatbot:
-- **Factual**: answers come from your actual documents, not from training data
-- **Traceable**: every answer can be traced to specific source documents and pages
-- **Up-to-date**: new documents are automatically indexed and immediately searchable
-- **Controllable**: you control what documents the model can use
+        ↓
 
-## Why RAG is better than sending an entire PDF to an LLM
+Response:
+"According to the academic regulations, students must
+maintain the required minimum attendance."
 
-**Sending the entire PDF:**
-- Many LLMs have token limits (often 4k-8k tokens, sometimes more)
-- Large PDFs quickly exceed these limits, causing truncation or errors
-- The model wastes tokens on irrelevant content
-- Processing time is longer, increasing latency and cost
-- The model may lose important context due to length constraints
+        ↓
 
-**Using RAG:**
-- Only the most relevant chunks (typically 500-1000 tokens) are sent to the LLM
-- The model focuses on relevant content, improving answer quality
-- Faster response times and lower API costs
-- Works with documents of any size
-- Scales to thousands of documents without token limit issues
-- Semantic search finds the right information, even in very long documents
+Sources:
+academic_regulations.pdf — Page 12
+```
 
-## Running the application
- 
-### 1. Backend Setup
+---
+
+## 🧪 Testing
+
+### Backend
+
 ```bash
 cd backend
+pytest
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm test
+```
+
+The test suite is intended to validate backend functionality and frontend behavior.
+
+---
+
+## 🚀 Running the Application
+
+### 1. Backend Setup
+
+```bash
+cd backend
+
 pip install -r requirements.txt
-# Copy environment template and set your OPENAI_API_KEY
+
+# Create environment configuration
 copy .env.example .env
+
+# Add your OpenAI API key to .env
+
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+The backend will be available at:
+
+```text
+http://localhost:8000
+```
+
+---
+
 ### 2. Frontend Setup
+
+Open a second terminal:
+
 ```bash
 cd frontend
+
 npm install
 npm run dev
 ```
 
-### 3. Running Tests
-```bash
-# Backend tests
-cd backend
-pytest
+The Vite development server will provide the frontend URL in the terminal.
 
-# Frontend tests
-cd frontend
-npm test
+---
+
+## 📈 Why RAG?
+
+A traditional chatbot relies primarily on the knowledge contained within the LLM.
+
+This creates a problem when users need answers from **private or recently uploaded documents**.
+
+RAG solves this by separating the problem into two stages:
+
+```text
+RETRIEVAL
+Find relevant information
+        +
+GENERATION
+Use that information to produce an answer
 ```
+
+The LLM therefore receives relevant document context rather than being expected to know the contents of every uploaded document.
+
+### Benefits
+
+* **Grounded answers** — responses are based on retrieved document content
+* **Source traceability** — answers can reference document/page metadata
+* **Private knowledge base** — organizations can provide their own documents
+* **Incremental updates** — new documents can be indexed without retraining the LLM
+* **Lower context usage** — only relevant chunks are passed to the model
+* **Semantic retrieval** — queries can match conceptually related content
+
+---
+
+## ⚖️ RAG vs. Sending the Entire PDF
+
+### Entire PDF
+
+```text
+PDF
+ ↓
+Entire document
+ ↓
+LLM
+ ↓
+Answer
+```
+
+Potential problems:
+
+* Large context requirements
+* Higher token consumption
+* Higher API cost
+* Increased latency
+* Irrelevant information in the prompt
+* Context-window limitations
+
+### RAG
+
+```text
+PDF
+ ↓
+Chunks → Embeddings → FAISS
+                         ↑
+                         │
+                    User Query
+                         │
+                         ↓
+                  Relevant Chunks
+                         ↓
+                        LLM
+                         ↓
+                      Answer
+```
+
+The model receives a smaller, more relevant context instead of the entire document.
+
+---
+
+## 🔮 Future Improvements
+
+Potential improvements include:
+
+* [ ] Hybrid search — BM25 + vector search
+* [ ] Cross-encoder reranking
+* [ ] Streaming LLM responses
+* [ ] Multi-document collection management
+* [ ] Document versioning
+* [ ] OCR support for scanned PDFs
+* [ ] Table-aware document extraction
+* [ ] Metadata filtering
+* [ ] Improved citation formatting
+* [ ] Evaluation framework for retrieval quality
+* [ ] RAGAS-based RAG evaluation
+* [ ] Authentication and multi-user support
+* [ ] PostgreSQL for production conversation storage
+* [ ] Docker / Docker Compose deployment
+* [ ] CI/CD pipeline
+* [ ] Observability and request tracing
+* [ ] Rate limiting and API security
+
+---
+
+## 🎓 Project Objective
+
+This project explores the intersection of:
+
+**Generative AI + Information Retrieval + Backend Engineering + Full-Stack Development**
+
+The primary goal is to demonstrate how a production-style RAG pipeline can be designed to ingest private documents, perform semantic retrieval, maintain conversational context, and generate grounded answers with source attribution.
+
+---
+
+## 📌 Disclaimer
+
+This project is intended for **educational, portfolio, and demonstration purposes**.
+
+LLM-generated responses may still contain errors. Retrieved documents and source references should be verified for high-stakes academic or administrative decisions.
+
